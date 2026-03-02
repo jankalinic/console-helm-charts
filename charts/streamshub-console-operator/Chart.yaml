@@ -13,6 +13,7 @@ keywords:
 home: https://github.com/streamshub/console
 sources:
   - https://github.com/streamshub/console
+icon: https://raw.githubusercontent.com/jankalinic/console-helm-charts/refs/heads/main/resources/community-logo-white.png
 maintainers:
   - name: jankalinic
     email: jkalinic@redhat.com
