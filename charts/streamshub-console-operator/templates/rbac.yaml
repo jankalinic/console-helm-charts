@@ -1,0 +1,77 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: streamshub-consolereconciler-cluster-role-binding
+  labels:
+    {{- include "streamshub-console-operator.labels" . | nindent 4 }}
+roleRef:
+  kind: ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+  name: streamshub-consolereconciler-cluster-role
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "streamshub-console-operator.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: streamshub-consolereconciler-crd-validating-role-binding
+  labels:
+    {{- include "streamshub-console-operator.labels" . | nindent 4 }}
+roleRef:
+  kind: ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+  name: streamshub-console-crd-validating-cluster-role
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "streamshub-console-operator.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: streamshub-consolereconciler-additional-cluster-role-binding
+  labels:
+    {{- include "streamshub-console-operator.labels" . | nindent 4 }}
+roleRef:
+  kind: ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+  name: streamshub-consolereconciler-additional-cluster-role
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "streamshub-console-operator.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+---
+# Grants access to cluster-monitoring-view (exists by default on OpenShift)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: streamshub-consolereconciler-cluster-monitoring-view
+  labels:
+    {{- include "streamshub-console-operator.labels" . | nindent 4 }}
+roleRef:
+  kind: ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+  name: cluster-monitoring-view
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "streamshub-console-operator.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: streamshub-console-operator-view
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "streamshub-console-operator.labels" . | nindent 4 }}
+roleRef:
+  kind: ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+  name: view
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "streamshub-console-operator.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}

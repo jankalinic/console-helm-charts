@@ -1,0 +1,26 @@
+StreamsHub Console Operator has been deployed!
+
+Operator namespace : {{ .Release.Namespace }}
+Watch namespaces   : {{ .Values.watchNamespaces }}
+Image              : {{ include "streamshub-console-operator.image" . }}
+
+Next steps:
+  1. Verify the operator is running:
+       kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/name=streamshub-console-operator
+
+  2. Deploy a Console instance by creating a Console CR:
+       kubectl apply -f my-console.yaml -n <target-namespace>
+
+     Example Console CR:
+       apiVersion: console.streamshub.github.com/v1alpha1
+       kind: Console
+       metadata:
+         name: my-console
+       spec: {}
+
+  3. Check the operator logs if something looks off:
+       kubectl logs -n {{ .Release.Namespace }} deployment/streamshub-console-operator
+
+NOTE: The ClusterRoleBinding for 'cluster-monitoring-view' assumes that role
+exists in your cluster (it's present by default on OpenShift). On vanilla
+Kubernetes you may need to create it or disable that binding.
