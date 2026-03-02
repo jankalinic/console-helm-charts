@@ -1,0 +1,23 @@
+.DS_store
+
+# IDEs
+.project
+.idea/
+*.tmproj
+.vscode/
+
+# VS Code
+.factorypath
+.vscode
+
+# env files
+.env*
+
+# Backup files
+*.swp
+*.bak
+*.tmp
+*.orig
+*~
+
+*.tgz
