@@ -1,0 +1,70 @@
+# -- Number of operator replicas. Must remain 1 — the operator uses
+# lease-based leader election and does not support multiple replicas.
+replicaCount: 1
+
+image:
+  # -- Operator container image repository
+  repository: quay.io/streamshub/console-operator
+  # -- Image tag. Defaults to the chart appVersion when left empty.
+  tag: ""
+  # -- Image pull policy
+  pullPolicy: Always
+
+# -- Image pull secrets for pulling from a private registry
+imagePullSecrets: []
+# - name: my-registry-secret
+
+# -- Override the chart name used in resource naming
+nameOverride: ""
+# -- Override the fully qualified resource name
+fullnameOverride: ""
+
+# -- ServiceAccount configuration
+serviceAccount:
+  # -- Whether to create the ServiceAccount. Set to false if you want to
+  # bring your own pre-existing ServiceAccount.
+  create: true
+  # -- Custom ServiceAccount name. Defaults to the fullname if not set.
+  name: ""
+
+# -- Create RBAC resources (ClusterRoles, ClusterRoleBindings, RoleBinding).
+# Disable if your platform manages RBAC separately.
+rbac:
+  create: true
+
+# -- OpenShift-specific resources.
+# Enables the cluster-monitoring-view ClusterRoleBinding required for
+# OpenShift Prometheus integration.
+openshift:
+  enabled: false
+
+# -- Deploy a Console CR instance alongside the operator.
+# When false, only the operator is installed.
+# Requires consoleInstance.hostname to be set when enabled.
+deployConsoleInstance: false
+
+# -- Console instance configuration.
+# Only used when deployConsoleInstance is true.
+consoleInstance:
+  # -- Required: public hostname for the Console UI
+  hostname: ""
+
+# -- Resource requests and limits for the operator container.
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+# -- ServiceMonitor for Prometheus scraping.
+# Requires prometheus-operator CRDs to be installed in the cluster.
+# Default is false to avoid install failures on clusters without prometheus-operator.
+serviceMonitor:
+  enabled: false
+
+# -- Extra environment variables to inject into the operator container
+extraEnv: []
+# - name: MY_VAR
+#   value: "my-value"

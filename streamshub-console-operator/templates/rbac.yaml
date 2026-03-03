@@ -1,14 +1,15 @@
+{{- if .Values.rbac.create }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: streamshub-consolereconciler-cluster-role-binding
+  name: {{ include "streamshub-console-operator.fullname" . }}-reconciler
   labels:
     {{- include "streamshub-console-operator.labels" . | nindent 4 }}
 roleRef:
   kind: ClusterRole
   apiGroup: rbac.authorization.k8s.io
-  name: streamshub-consolereconciler-cluster-role
+  name: {{ include "streamshub-console-operator.fullname" . }}-reconciler
 subjects:
   - kind: ServiceAccount
     name: {{ include "streamshub-console-operator.serviceAccountName" . }}
@@ -17,13 +18,13 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: streamshub-consolereconciler-crd-validating-role-binding
+  name: {{ include "streamshub-console-operator.fullname" . }}-crd-validating
   labels:
     {{- include "streamshub-console-operator.labels" . | nindent 4 }}
 roleRef:
   kind: ClusterRole
   apiGroup: rbac.authorization.k8s.io
-  name: streamshub-console-crd-validating-cluster-role
+  name: {{ include "streamshub-console-operator.fullname" . }}-crd-validating
 subjects:
   - kind: ServiceAccount
     name: {{ include "streamshub-console-operator.serviceAccountName" . }}
@@ -32,38 +33,23 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: streamshub-consolereconciler-additional-cluster-role-binding
+  name: {{ include "streamshub-console-operator.fullname" . }}-additional
   labels:
     {{- include "streamshub-console-operator.labels" . | nindent 4 }}
 roleRef:
   kind: ClusterRole
   apiGroup: rbac.authorization.k8s.io
-  name: streamshub-consolereconciler-additional-cluster-role
+  name: {{ include "streamshub-console-operator.fullname" . }}-additional
 subjects:
   - kind: ServiceAccount
     name: {{ include "streamshub-console-operator.serviceAccountName" . }}
     namespace: {{ .Release.Namespace }}
 ---
-# Grants access to cluster-monitoring-view (exists by default on OpenShift)
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: streamshub-consolereconciler-cluster-monitoring-view
-  labels:
-    {{- include "streamshub-console-operator.labels" . | nindent 4 }}
-roleRef:
-  kind: ClusterRole
-  apiGroup: rbac.authorization.k8s.io
-  name: cluster-monitoring-view
-subjects:
-  - kind: ServiceAccount
-    name: {{ include "streamshub-console-operator.serviceAccountName" . }}
-    namespace: {{ .Release.Namespace }}
----
+# Grants read access to the operator's own namespace resources
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: streamshub-console-operator-view
+  name: {{ include "streamshub-console-operator.fullname" . }}-view
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "streamshub-console-operator.labels" . | nindent 4 }}
@@ -75,3 +61,24 @@ subjects:
   - kind: ServiceAccount
     name: {{ include "streamshub-console-operator.serviceAccountName" . }}
     namespace: {{ .Release.Namespace }}
+---
+# OpenShift only: binds the pre-existing cluster-monitoring-view ClusterRole
+# which is required for Prometheus/Thanos metrics integration on OpenShift.
+# This ClusterRole does not exist on vanilla Kubernetes.
+{{- if .Values.openshift.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "streamshub-console-operator.fullname" . }}-cluster-monitoring-view
+  labels:
+    {{- include "streamshub-console-operator.labels" . | nindent 4 }}
+roleRef:
+  kind: ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+  name: cluster-monitoring-view
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "streamshub-console-operator.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}
+{{- end }}

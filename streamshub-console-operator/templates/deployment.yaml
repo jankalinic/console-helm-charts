@@ -1,15 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: streamshub-console-operator
+  name: {{ include "streamshub-console-operator.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "streamshub-console-operator.labels" . | nindent 4 }}
-  annotations:
-    prometheus.io/scrape: "true"
-    prometheus.io/path: /q/metrics
-    prometheus.io/port: "8080"
-    prometheus.io/scheme: http
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -20,6 +15,7 @@ spec:
       labels:
         {{- include "streamshub-console-operator.labels" . | nindent 8 }}
       annotations:
+        # Pod-level Prometheus scrape annotations (read by node-exporter/Prometheus)
         prometheus.io/scrape: "true"
         prometheus.io/path: /q/metrics
         prometheus.io/port: "8080"
@@ -30,19 +26,25 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      # Pod-level security context — defence in depth alongside container securityContext
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: streamshub-console-operator
           image: {{ include "streamshub-console-operator.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
-            # The operator reads its own version label to know which image tags to deploy for Console instances
+            # The operator reads its own version label to determine which image
+            # tags to use when deploying Console API and UI containers
             - name: CONSOLE_DEPLOYMENT_DEFAULT_IMAGE_TAG
               valueFrom:
                 fieldRef:
                   fieldPath: "metadata.labels['app.kubernetes.io/version']"
-            # Controls which namespaces the operator watches. JOSDK_ALL_NAMESPACES = cluster-wide
+            # Cluster-wide watch scope — operator manages Console CRs in all namespaces
             - name: QUARKUS_OPERATOR_SDK_CONTROLLERS_CONSOLERECONCILER_NAMESPACES
-              value: {{ .Values.watchNamespaces | quote }}
+              value: "JOSDK_ALL_NAMESPACES"
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -80,12 +82,15 @@ spec:
             failureThreshold: 3
             successThreshold: 1
             timeoutSeconds: 10
+          {{- with .Values.resources }}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          # Container-level security context
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
-              drop: [ALL]
+              drop: ["ALL"]
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             seccompProfile:
