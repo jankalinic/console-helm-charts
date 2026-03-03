@@ -26,8 +26,8 @@ sources:
 icon: https://raw.githubusercontent.com/jankalinic/console-helm-charts/refs/heads/main/resources/community-logo-white.png
 
 maintainers:
-  - name: medgar
-    email: medgar@redhat.com
+  - name: jankalinic
+    email: my-email@mail.com
 
 annotations:
   # ArtifactHub — operator classification
