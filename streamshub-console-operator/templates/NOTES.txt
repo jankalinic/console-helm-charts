@@ -11,10 +11,11 @@ Full cleanup       : {{ .Values.fullCleanup }}
 Strimzi Kafka Operator
 ------------------------------------------------------------
 Version            : {{ .Values.strimzi.version }}
-{{- if .Values.strimzi.strimziKafkaOperator.watchAnyNamespace }}
+{{- $strimziValues := index .Values.strimzi "strimzi-kafka-operator" }}
+{{- if and $strimziValues $strimziValues.watchAnyNamespace }}
 Watch namespace    : all namespaces
-{{- else if .Values.strimzi.strimziKafkaOperator.watchNamespaces }}
-Watch namespaces   : {{ join ", " .Values.strimzi.strimziKafkaOperator.watchNamespaces }}
+{{- else if and $strimziValues $strimziValues.watchNamespaces }}
+Watch namespaces   : {{ join ", " $strimziValues.watchNamespaces }}
 {{- else }}
 Watch namespaces   : {{ .Release.Namespace }} (default)
 {{- end }}
