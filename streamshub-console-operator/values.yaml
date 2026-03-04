@@ -49,6 +49,54 @@ consoleInstance:
   # -- Required: public hostname for the Console UI
   hostname: ""
 
+  # -- Kafka clusters to connect to. Each entry maps to a Strimzi Kafka CR.
+  kafkaClusters: []
+  # - name: my-kafka
+  #   namespace: kafka
+  #   listener: secure
+  #   credentials:
+  #     kafkaUser:
+  #       name: my-kafka-user
+
+  # -- Kafka Connect clusters to connect to.
+  kafkaConnectClusters: []
+  # - name: my-connect
+  #   url: http://my-connect.kafka.svc:8083
+  #   kafkaClusters:
+  #     - my-kafka
+
+  # -- Prometheus metrics sources.
+  metricsSources: []
+  # - name: my-prometheus
+  #   type: standalone   # or: openshift-monitoring, embedded
+  #   url: https://prometheus.example.com
+
+  # -- Apicurio schema registry instances.
+  schemaRegistries: []
+  # - name: my-registry
+  #   url: https://registry.example.com
+
+  # -- Global OIDC security configuration.
+  security: {}
+  # oidc:
+  #   authServerUrl: https://sso.example.com/realms/kafka
+  #   clientId: console
+  #   clientSecret:
+  #     value: my-secret
+
+  # -- Container image and resource overrides for API and UI servers.
+  containers: {}
+  # api:
+  #   spec:
+  #     image: quay.io/streamshub/console-api:0.11.0
+  #     resources:
+  #       requests:
+  #         cpu: 250m
+  #         memory: 256Mi
+  # ui:
+  #   spec:
+  #     image: quay.io/streamshub/console-ui:0.11.0
+
 # -- Resource requests and limits for the operator container.
 resources:
   limits:

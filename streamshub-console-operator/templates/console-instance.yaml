@@ -1,0 +1,45 @@
+{{- if .Values.deployConsoleInstance }}
+{{- if not .Values.consoleInstance.hostname }}
+  {{- fail "consoleInstance.hostname is required when deployConsoleInstance is true" }}
+{{- end }}
+apiVersion: console.streamshub.github.com/v1alpha1
+kind: Console
+metadata:
+  name: {{ include "streamshub-console-operator.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "streamshub-console-operator.labels" . | nindent 4 }}
+spec:
+  hostname: {{ .Values.consoleInstance.hostname | quote }}
+
+  {{- if .Values.consoleInstance.kafkaClusters }}
+  kafkaClusters:
+    {{- toYaml .Values.consoleInstance.kafkaClusters | nindent 4 }}
+  {{- end }}
+
+  {{- if .Values.consoleInstance.kafkaConnectClusters }}
+  kafkaConnectClusters:
+    {{- toYaml .Values.consoleInstance.kafkaConnectClusters | nindent 4 }}
+  {{- end }}
+
+  {{- if .Values.consoleInstance.metricsSources }}
+  metricsSources:
+    {{- toYaml .Values.consoleInstance.metricsSources | nindent 4 }}
+  {{- end }}
+
+  {{- if .Values.consoleInstance.schemaRegistries }}
+  schemaRegistries:
+    {{- toYaml .Values.consoleInstance.schemaRegistries | nindent 4 }}
+  {{- end }}
+
+  {{- if .Values.consoleInstance.security }}
+  security:
+    {{- toYaml .Values.consoleInstance.security | nindent 4 }}
+  {{- end }}
+
+  {{- if .Values.consoleInstance.containers }}
+  containers:
+    {{- toYaml .Values.consoleInstance.containers | nindent 4 }}
+  {{- end }}
+
+{{- end }}
