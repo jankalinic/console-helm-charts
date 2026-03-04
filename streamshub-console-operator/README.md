@@ -40,33 +40,74 @@ The operator manages the lifecycle of Console instances via a `Console` Custom R
 
 ## Installation
 
-### Install the operator
-
+### Operator only
 ```bash
-helm install streamshub-console-operator \
+helm install console \
   oci://docker.io/jkalinic/streamshub-console-operator \
-  --version 0.11.0 \
-  --namespace streamshub-console \
+  --version 0.11.1-snapshot \
+  --namespace co-namespace \
   --create-namespace
 ```
 
-### Install with OpenShift support enabled
-
+### With OpenShift support
 ```bash
-helm install streamshub-console-operator \
+helm install console \
   oci://docker.io/jkalinic/streamshub-console-operator \
-  --version 0.11.0 \
-  --namespace streamshub-console \
+  --version 0.11.1-snapshot \
+  --namespace co-namespace \
   --create-namespace \
   --set openshift.enabled=true
 ```
 
-### Verify the operator is running
+### With Strimzi as a subchart
 
+If you don't have Strimzi installed yet, this chart can install it as a dependency:
 ```bash
-kubectl get pods -n streamshub-console \
-  -l app.kubernetes.io/name=streamshub-console-operator
+helm install console \
+  oci://docker.io/jkalinic/streamshub-console-operator \
+  --version 0.11.1-snapshot \
+  --namespace co-namespace \
+  --create-namespace \
+  --set strimzi.enabled=true \
+  --set strimzi.strimzi-kafka-operator.watchNamespaces="{co-namespace}"
 ```
+
+### With an example Kafka cluster and Console instance
+
+Deploys the operator, a Strimzi-managed Kafka cluster, and a Console instance in one command:
+```bash
+helm install console \
+  oci://docker.io/jkalinic/streamshub-console-operator \
+  --version 0.11.1-snapshot \
+  --namespace co-namespace \
+  --create-namespace \
+  --set strimzi.enabled=true \
+  --set strimzi.strimzi-kafka-operator.watchNamespaces="{co-namespace}" \
+  --set exampleKafka.enabled=true \
+  --set deployConsoleInstance=true \
+  --set clusterDomain=192.168.49.2.nip.io
+```
+
+### Verify the operator is running
+```bash
+kubectl get pods -n co-namespace \
+  -l app.kubernetes.io/name=console
+```
+
+---
+
+## Resource naming
+
+All resources are named after the Helm release name to keep names short and predictable.
+Using `helm install console ...` produces:
+
+| Resource | Name |
+|---|---|
+| Operator Deployment | `console-console` |
+| Kafka CR | `console-kafka` |
+| Console CR | `console` |
+| KafkaUser | `console-kafka-user` |
+| KafkaTopic | `console-topic` |
 
 ---
 
@@ -75,7 +116,6 @@ kubectl get pods -n streamshub-console \
 Once the operator is running, create a `Console` CR to deploy a console instance.
 
 ### Minimal example
-
 ```yaml
 apiVersion: console.streamshub.github.com/v1alpha1
 kind: Console
@@ -84,16 +124,15 @@ metadata:
 spec:
   hostname: console.my-cluster.example.com
   kafkaClusters:
-    - name: my-kafka          # Name of the Strimzi Kafka CR
-      namespace: kafka        # Namespace where the Kafka CR lives
-      listener: secure        # Listener name defined on the Kafka CR
+    - name: my-kafka
+      namespace: kafka
+      listener: secure
       credentials:
         kafkaUser:
-          name: my-kafka-user # Name of the KafkaUser CR
+          name: my-kafka-user
 ```
 
 ### Full example with Prometheus metrics
-
 ```yaml
 apiVersion: console.streamshub.github.com/v1alpha1
 kind: Console
@@ -103,7 +142,7 @@ spec:
   hostname: console.example.com
   metricsSources:
     - name: my-prometheus
-      type: standalone          # or: openshift-monitoring, embedded
+      type: standalone
       url: https://prometheus.example.com
   schemaRegistries:
     - name: my-registry
@@ -124,10 +163,68 @@ spec:
         - my-kafka
 ```
 
-### Example Kafka cluster (Strimzi + KRaft)
+---
 
-If you need a Kafka cluster to test with, the upstream repository includes a minimal Strimzi setup using KRaft mode. You can apply the examples directly from GitHub:
+## Uninstallation
 
+### Basic uninstall
+```bash
+helm uninstall console -n co-namespace
+```
+
+> **Note:** This leaves behind any `Console`, `Kafka`, `KafkaUser`, and `KafkaTopic` CRs.
+> You will need to remove them manually.
+
+### Full cleanup — remove all CRs on uninstall
+
+To have the pre-delete hook automatically remove all CRs and wait for operator
+cleanup before uninstalling, enable `fullCleanup` via an upgrade first:
+```bash
+helm upgrade console \
+  oci://docker.io/jkalinic/streamshub-console-operator \
+  --reuse-values \
+  --set fullCleanup=true \
+  -n co-namespace
+
+helm uninstall console -n co-namespace
+```
+
+This will, in order:
+
+1. Strip all finalizers from Console, Kafka, KafkaUser, KafkaTopic, and KafkaNodePool CRs
+2. Delete all CRs and wait for them to be fully removed
+3. Remove the operator and all chart resources
+
+### Full cleanup including CRDs
+
+To also remove CRDs on uninstall (use with caution — this affects all clusters using these CRDs):
+```bash
+helm upgrade console \
+  oci://docker.io/jkalinic/streamshub-console-operator \
+  --reuse-values \
+  --set fullCleanup=true \
+  --set deleteCRDs=true \
+  -n co-namespace
+
+helm uninstall console -n co-namespace
+```
+
+> Strimzi CRDs are only deleted if Strimzi was installed as a subchart (`strimzi.enabled=true`).
+> If you brought your own Strimzi installation, its CRDs are left untouched.
+
+---
+
+## Configuration
+
+For the full list of configurable parameters and their defaults, see
+[values.yaml](https://github.com/jankalinic/console-helm-charts/blob/main/streamshub-console-operator/values.yaml).
+
+---
+
+## Example Kafka cluster
+
+If you need a Kafka cluster to test with and want to deployit yourself, the upstream repository includes a minimal
+Strimzi setup using KRaft mode. You can apply the examples directly from GitHub:
 ```bash
 BASE=https://raw.githubusercontent.com/streamshub/console/main/examples/kafka
 
@@ -139,36 +236,6 @@ kubectl apply -f ${BASE}/040-KafkaUser-console-kafka-user1.yaml
 kubectl apply -f ${BASE}/050-KafkaTopic-console-topic.yaml
 ```
 
-The full examples directory is available at [github.com/streamshub/console/tree/main/examples/kafka](https://github.com/streamshub/console/tree/main/examples/kafka).
-
-The example Kafka cluster is configured with:
-- 3 brokers + 3 controllers (KRaft mode, no ZooKeeper)
-- SCRAM-SHA-512 authentication on a TLS listener
-- JMX Prometheus Exporter metrics enabled
-- CruiseControl for rebalancing
-
+The full examples directory is available at
+[github.com/streamshub/console/tree/main/examples/kafka](https://github.com/streamshub/console/tree/main/examples/kafka).
 ---
-
-## Configuration
-
-All parameters can be overridden in a `values.yaml` file or via `--set`.
-
-| Parameter | Description | Default |
-|---|---|---|
-| `replicaCount` | Number of operator replicas. Must be `1`. | `1` |
-| `image.repository` | Operator image repository | `quay.io/streamshub/console-operator` |
-| `image.tag` | Operator image tag. Defaults to chart `appVersion`. | `""` |
-| `image.pullPolicy` | Image pull policy | `Always` |
-| `imagePullSecrets` | Pull secrets for private registries | `[]` |
-| `nameOverride` | Override the chart name used in resource naming | `""` |
-| `fullnameOverride` | Override the fully qualified resource name | `""` |
-| `serviceAccount.create` | Create the ServiceAccount | `true` |
-| `serviceAccount.name` | Custom ServiceAccount name. Defaults to fullname. | `""` |
-| `rbac.create` | Create RBAC resources (ClusterRoles, bindings) | `true` |
-| `openshift.enabled` | Enable OpenShift-specific resources (`cluster-monitoring-view` binding) | `false` |
-| `deployConsoleInstance` | Deploy a `Console` CR alongside the operator | `false` |
-| `consoleInstance.hostname` | Hostname for the Console UI. Required when `deployConsoleInstance=true`. | `""` |
-| `resources.limits.cpu` | CPU limit | `500m` |
-| `resources.limits.memory` | Memory limit | `512Mi` |
-| `resources.requests.cpu` | CPU request | `250m` |
-| `resources.requests.memory` | Memory request |

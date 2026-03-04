@@ -9,7 +9,7 @@ Community-maintained Helm charts for [StreamsHub](https://github.com/streamshub)
 
 | Chart                                                               | Description | Version |
 |---------------------------------------------------------------------|---|---|
-| [streamshub-console-operator](streamshub-console-operator) | Deploys the StreamsHub Console Operator for monitoring Apache Kafka® clusters | 0.11.0 |
+| [streamshub-console-operator](streamshub-console-operator) | Deploys the StreamsHub Console Operator for monitoring Apache Kafka® clusters | 0.11.1-snapshot |
 
 ## Usage
 
@@ -17,8 +17,8 @@ Charts are distributed via OCI on Quay:
 
 ```bash
 helm install streamshub-console-operator \
-  oci://quay.io/docker.io/jkalinic/streamshub-console-operator \
-  --version 0.11.0 \
+  oci://docker.io/jkalinic/streamshub-console-operator \
+  --version 0.11.1-snapshot \
   --namespace streamshub-console \
   --create-namespace
 ```

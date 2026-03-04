@@ -6,10 +6,10 @@ type: application
 # Chart version — kept in sync with appVersion so that --version 0.11.0
 # always means operator 0.11.0. Patch bumps (e.g. 0.11.1) are used for
 # chart-only fixes that don't change the operator version.
-version: 0.11.0
+version: 0.11.1-snapshot
 
 # appVersion — the operator image tag deployed by this chart version.
-appVersion: "0.11.0"
+appVersion: "0.11.1-snapshot"
 
 dependencies:
   - name: strimzi-kafka-operator
