@@ -27,7 +27,7 @@ icon: https://raw.githubusercontent.com/jankalinic/console-helm-charts/refs/head
 
 maintainers:
   - name: jankalinic
-    email: my-email@mail.com
+    email: work.kalinic@gmail.com
 
 annotations:
   # ArtifactHub — operator classification

@@ -1,5 +1,9 @@
 # StreamsHub Console Operator — Helm Chart
 
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/streamshub)](https://artifacthub.io/packages/helm/streamshub-console-operator-community-jkalinic/streamshub-console-operator)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/streamshub/console/blob/main/LICENSE)
+[![Operator Version](https://img.shields.io/badge/operator-0.11.0-green.svg)](https://github.com/streamshub/console/releases/tag/0.11.0)
+
 A Helm chart for the [StreamsHub Console Operator](https://github.com/streamshub/console), which deploys and manages the StreamsHub Console — a web-based UI for monitoring Apache Kafka® clusters running on Kubernetes.
 
 > **Note:** This chart is a community-maintained Helm packaging of the StreamsHub Console Operator.
@@ -19,23 +23,25 @@ The StreamsHub Console provides:
 - Schema Registry integration (Apicurio)
 - Kafka Connect cluster visibility
 
-The operator manages the lifecycle of Console instances via a `Console` Custom Resource. Once the operator is installed, you deploy one `Console` CR per Kafka environment you want to monitor.
+The operator manages the lifecycle of Console instances via a `Console` Custom Resource. Once the operator is installed, deploy one `Console` CR per Kafka environment you want to monitor.
 
 ---
 
 ## Prerequisites
 
-- Kubernetes **1.25+**
-- Helm **3.7+**
-- [Strimzi Cluster Operator](https://strimzi.io) installed with at least one `Kafka` CR deployed
-- (Optional) Prometheus Operator for metrics integration
-- (Optional) Apicurio Registry for schema registry integration
+| Requirement | Version |
+|---|---|
+| Kubernetes | `1.25+` |
+| Helm | `3.7+` |
+| [Strimzi Cluster Operator](https://strimzi.io) | Any supported version with at least one `Kafka` CR |
+| Prometheus Operator | Optional — required for metrics integration |
+| Apicurio Registry | Optional — required for schema registry integration |
 
 ---
 
 ## Installation
 
-### Add the chart repository
+### Install the operator
 
 ```bash
 helm install streamshub-console-operator \
@@ -45,10 +51,22 @@ helm install streamshub-console-operator \
   --create-namespace
 ```
 
+### Install with OpenShift support enabled
+
+```bash
+helm install streamshub-console-operator \
+  oci://docker.io/jkalinic/streamshub-console-operator \
+  --version 0.11.0 \
+  --namespace streamshub-console \
+  --create-namespace \
+  --set openshift.enabled=true
+```
+
 ### Verify the operator is running
 
 ```bash
-kubectl get pods -n streamshub-console -l app.kubernetes.io/name=streamshub-console-operator
+kubectl get pods -n streamshub-console \
+  -l app.kubernetes.io/name=streamshub-console-operator
 ```
 
 ---
@@ -68,11 +86,11 @@ spec:
   hostname: console.my-cluster.example.com
   kafkaClusters:
     - name: my-kafka          # Name of the Strimzi Kafka CR
-      namespace: kafka         # Namespace where the Kafka CR lives
-      listener: secure         # Listener name defined on the Kafka CR
+      namespace: kafka        # Namespace where the Kafka CR lives
+      listener: secure        # Listener name defined on the Kafka CR
       credentials:
         kafkaUser:
-          name: my-kafka-user  # Name of the KafkaUser CR
+          name: my-kafka-user # Name of the KafkaUser CR
 ```
 
 ### Full example with Prometheus metrics
@@ -81,60 +99,48 @@ spec:
 apiVersion: console.streamshub.github.com/v1alpha1
 kind: Console
 metadata:
-  name: example
+  name: my-console
 spec:
-  hostname: example-console.${CLUSTER_DOMAIN}
+  hostname: console.example.com
   metricsSources:
-    # Array of connected Prometheus servers
-    # - name: my-prometheus
-    #   type: openshift-monitoring   # or: standalone
-    #   url: https://prometheus.example.com
+    - name: my-prometheus
+      type: standalone          # or: openshift-monitoring, embedded
+      url: https://prometheus.example.com
   schemaRegistries:
-    # Array of Apicurio Registry instances
-    # - name: my-registry
-    #   url: https://registry.example.com
+    - name: my-registry
+      url: https://registry.example.com
   kafkaClusters:
-    - name: console-kafka
-      namespace: ${KAFKA_NAMESPACE}
+    - name: my-kafka
+      namespace: kafka
       listener: secure
-      metricsSource: null       # Name from metricsSources above
-      schemaRegistry: null      # Name from schemaRegistries above
-      properties:
-        values: []              # Direct connection properties (name/value pairs)
-        valuesFrom: []          # References to ConfigMaps or Secrets
+      metricsSource: my-prometheus
+      schemaRegistry: my-registry
       credentials:
         kafkaUser:
-          name: console-kafka-user1
+          name: my-kafka-user
   kafkaConnectClusters:
-    # Array of Kafka Connect clusters
-    # - name: my-connect-cluster
-    #   url: http://my-connect-cluster.example.com/
-    #   kafkaClusters:
-    #     - ${KAFKA_NAMESPACE}/console-kafka
+    - name: my-connect-cluster
+      url: http://my-connect-cluster.kafka.svc:8083
+      kafkaClusters:
+        - my-kafka
 ```
 
-### Example Kafka cluster (Strimzi + Kafka(KRaft))
+### Example Kafka cluster (Strimzi + KRaft)
 
-If you need a Kafka cluster to test with, the upstream repository includes a minimal Strimzi setup using KRaft mode and KafkaNodePools. You can apply the examples directly from GitHub without cloning:
+If you need a Kafka cluster to test with, the upstream repository includes a minimal Strimzi setup using KRaft mode. You can apply the examples directly from GitHub:
 
 ```bash
 BASE=https://raw.githubusercontent.com/streamshub/console/main/examples/kafka
 
-# 1. Metrics ConfigMap
 kubectl apply -f ${BASE}/010-ConfigMap-console-kafka-metrics.yaml
-
-# 2. KafkaNodePools (brokers + controllers)
 kubectl apply -f ${BASE}/020-KafkaNodePool-broker-console-nodepool.yaml
 kubectl apply -f ${BASE}/021-KafkaNodePool-controller-console-nodepool.yaml
-
-# 3. Kafka cluster
 kubectl apply -f ${BASE}/030-Kafka-console-kafka.yaml
-
-# 4. KafkaUser and KafkaTopic
 kubectl apply -f ${BASE}/040-KafkaUser-console-kafka-user1.yaml
 kubectl apply -f ${BASE}/050-KafkaTopic-console-topic.yaml
 ```
-The full examples directory is available at github.com/streamshub/console/tree/main/examples/kafka.
+
+The full examples directory is available at [github.com/streamshub/console/tree/main/examples/kafka](https://github.com/streamshub/console/tree/main/examples/kafka).
 
 The example Kafka cluster is configured with:
 - 3 brokers + 3 controllers (KRaft mode, no ZooKeeper)
@@ -146,57 +152,24 @@ The example Kafka cluster is configured with:
 
 ## Configuration
 
-The following values can be overridden in `values.yaml` or via `--set`:
+All parameters can be overridden in a `values.yaml` file or via `--set`.
 
 | Parameter | Description | Default |
 |---|---|---|
+| `replicaCount` | Number of operator replicas. Must be `1`. | `1` |
 | `image.repository` | Operator image repository | `quay.io/streamshub/console-operator` |
-| `image.tag` | Operator image tag | Chart `appVersion` |
+| `image.tag` | Operator image tag. Defaults to chart `appVersion`. | `""` |
 | `image.pullPolicy` | Image pull policy | `Always` |
-| `replicaCount` | Number of operator replicas | `1` |
-| `serviceMonitor.enabled` | Deploy a Prometheus `ServiceMonitor` | `true` |
+| `imagePullSecrets` | Pull secrets for private registries | `[]` |
+| `nameOverride` | Override the chart name used in resource naming | `""` |
+| `fullnameOverride` | Override the fully qualified resource name | `""` |
+| `serviceAccount.create` | Create the ServiceAccount | `true` |
+| `serviceAccount.name` | Custom ServiceAccount name. Defaults to fullname. | `""` |
+| `rbac.create` | Create RBAC resources (ClusterRoles, bindings) | `true` |
+| `openshift.enabled` | Enable OpenShift-specific resources (`cluster-monitoring-view` binding) | `false` |
+| `deployConsoleInstance` | Deploy a `Console` CR alongside the operator | `false` |
+| `consoleInstance.hostname` | Hostname for the Console UI. Required when `deployConsoleInstance=true`. | `""` |
 | `resources.limits.cpu` | CPU limit | `500m` |
 | `resources.limits.memory` | Memory limit | `512Mi` |
-| `resources.requests.cpu` | CPU request | `500m` |
-| `resources.requests.memory` | Memory request | `512Mi` |
-| `imagePullSecrets` | Image pull secrets for private registries | `[]` |
-| `extraEnv` | Extra environment variables for the operator container | `[]` |
-
-### Example: scoped namespace watch
-
-By default the operator is designed to watch all namespaces for `Console` CRs.
-
----
-
-## OpenShift notes
-
-The operator is supported on k8s clusters. The chart includes a `ClusterRoleBinding` for `cluster-monitoring-view`, which exists by default on OpenShift and grants access to the built-in Thanos/Prometheus stack. On vanilla Kubernetes this role does not exist — if you are not on OpenShift and see an error about this binding, you can safely ignore it or create an empty `cluster-monitoring-view` ClusterRole manually.
-
-The preferred installation method on OpenShift is via [OperatorHub](https://operatorhub.io) using the OLM bundle, which handles OpenShift-specific configuration automatically.
-
----
-
-## Uninstallation
-
-```bash
-helm uninstall streamshub-console-operator -n streamshub-console
-```
-
-> **Note:** The `Console` CRD is annotated with `helm.sh/resource-policy: keep` by default, meaning it will **not** be deleted on uninstall to protect any existing `Console` instances. To fully remove the CRD:
-> ```bash
-> kubectl delete crd consoles.console.streamshub.github.com
-> ```
-
----
-
-## Contributing
-
-This Helm chart is a community contribution. To propose including it in the upstream StreamsHub project, see the official project [streamshub/console](https://github.com/streamshub/console/).
-
-For issues with the operator, please open an issue at [streamshub/console](https://github.com/streamshub/console/issues).
-
----
-
-## License
-
-Apache License 2.0 — see [LICENSE](https://github.com/streamshub/console/blob/main/LICENSE) for details.
+| `resources.requests.cpu` | CPU request | `250m` |
+| `resources.requests.memory` | Memory request |

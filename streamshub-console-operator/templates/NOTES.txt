@@ -4,17 +4,16 @@ Operator namespace : {{ .Release.Namespace }}
 Watch scope        : cluster-wide (all namespaces)
 Image              : {{ include "streamshub-console-operator.image" . }}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+------------------------------------------------------------
 Next steps
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+------------------------------------------------------------
 
 1. Verify the operator pod is running:
 
      kubectl get pods -n {{ .Release.Namespace }} \
-       -l app.kubernetes.io/name=streamshub-console-operator
+       -l app.kubernetes.io/name={{ include "streamshub-console-operator.name" . }}
 
 2. Deploy a Console instance.
-
 {{- if .Values.deployConsoleInstance }}
 
    A Console instance was deployed alongside the operator.
@@ -25,12 +24,14 @@ Next steps
 
 {{- else }}
 
-   No Console instance was deployed. To deploy one together with
-   the operator, re-install with:
+   No Console instance was deployed. To deploy one together
+   with the operator, upgrade with:
 
-     helm upgrade --install <release> <chart> \
+     helm upgrade {{ .Release.Name }} \
+       --reuse-values \
        --set deployConsoleInstance=true \
-       --set consoleInstance.hostname=<your-hostname>
+       --set consoleInstance.hostname=<your-hostname> \
+       -n {{ .Release.Namespace }}
 
    Or apply a Console CR manually:
 
@@ -49,17 +50,18 @@ Next steps
      kubectl logs -n {{ .Release.Namespace }} \
        deployment/{{ include "streamshub-console-operator.fullname" . }}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+------------------------------------------------------------
 Notes
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+------------------------------------------------------------
 {{- if .Values.openshift.enabled }}
   OpenShift mode is enabled. The cluster-monitoring-view
   ClusterRoleBinding has been created.
 {{- else }}
   OpenShift mode is disabled. If running on OpenShift and you
-  want Prometheus metrics integration, re-install with:
+  want Prometheus metrics integration, upgrade with:
 
-    --set openshift.enabled=true
+    helm upgrade {{ .Release.Name }} --reuse-values \
+      --set openshift.enabled=true -n {{ .Release.Namespace }}
 {{- end }}
 
 {{- if .Values.serviceMonitor.enabled }}
@@ -67,7 +69,8 @@ Notes
   is installed in your cluster.
 {{- else }}
   ServiceMonitor is disabled. To enable Prometheus scraping
-  (requires prometheus-operator), re-install with:
+  (requires prometheus-operator), upgrade with:
 
-    --set serviceMonitor.enabled=true
+    helm upgrade {{ .Release.Name }} --reuse-values \
+      --set serviceMonitor.enabled=true -n {{ .Release.Namespace }}
 {{- end }}

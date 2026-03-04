@@ -32,19 +32,26 @@ Operator image with tag. Tag defaults to chart appVersion.
 
 {{/*
 ServiceAccount name.
-Uses explicitly set name, otherwise falls back to fullname.
+- If serviceAccount.create is false, a name must be provided explicitly.
+- If serviceAccount.create is true, uses the provided name or falls back to fullname.
 */}}
 {{- define "streamshub-console-operator.serviceAccountName" -}}
-{{- if .Values.serviceAccount.name }}
-{{- .Values.serviceAccount.name }}
+{{- if .Values.serviceAccount.create }}
+{{- .Values.serviceAccount.name | default (include "streamshub-console-operator.fullname" .) }}
 {{- else }}
-{{- include "streamshub-console-operator.fullname" . }}
+{{- required "serviceAccount.name is required when serviceAccount.create is false" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
 
 {{/*
-Common labels — applied to all resources.
+Cluster-scoped resource name — includes namespace to avoid collisions when
+the chart is installed in multiple namespaces on the same cluster.
+ClusterRoles and ClusterRoleBindings are cluster-wide so two releases in
+different namespaces would otherwise conflict on the same name.
 */}}
+{{- define "streamshub-console-operator.clusterResourceName" -}}
+{{- printf "%s-%s" (include "streamshub-console-operator.fullname" .) .Release.Namespace | trunc 63 | trimSuffix "-" }}
+{{- end }}
 {{- define "streamshub-console-operator.labels" -}}
 app.kubernetes.io/name: {{ include "streamshub-console-operator.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
