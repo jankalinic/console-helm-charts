@@ -17,7 +17,7 @@ Charts are distributed via OCI on Quay:
 
 ```bash
 helm install streamshub-console-operator \
-  oci://quay.io/rhn_support_jkalinic/console-helm-charts/streamshub-console-operator \
+  oci://quay.io/docker.io/jkalinic/streamshub-console-operator \
   --version 0.11.0 \
   --namespace streamshub-console \
   --create-namespace

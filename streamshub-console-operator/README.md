@@ -39,7 +39,7 @@ The operator manages the lifecycle of Console instances via a `Console` Custom R
 
 ```bash
 helm install streamshub-console-operator \
-  oci://quay.io/rhn_support_jkalinic/console-helm-charts/streamshub-console-operator \
+  oci://docker.io/jkalinic/streamshub-console-operator \
   --version 0.11.0 \
   --namespace streamshub-console \
   --create-namespace
