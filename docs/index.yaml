@@ -12,9 +12,9 @@ entries:
       artifacthub.io/operatorCapabilities: Basic Install
     apiVersion: v2
     appVersion: 0.11.0
-    created: "2026-03-04T17:33:50.190898+01:00"
+    created: "2026-03-04T17:40:37.154467+01:00"
     description: User interface to monitor Apache Kafka® clusters managed by Strimzi
-    digest: 14612a2669f7b796ccb3ffc86988b26695d7becf31f79fe4a98060e2098dda96
+    digest: eaa4b112314c89dd49393c11a1d0ef50b2f0e8b0772deaa5549c4215a456d161
     home: https://github.com/streamshub/console
     icon: https://raw.githubusercontent.com/jankalinic/console-helm-charts/refs/heads/main/resources/community-logo-white.png
     keywords:
@@ -35,4 +35,4 @@ entries:
     urls:
     - https://jankalinic.github.io/console-helm-charts/streamshub-console-operator-community-jkalinic-0.11.0.tgz
     version: 0.11.0
-generated: "2026-03-04T17:33:50.189793+01:00"
+generated: "2026-03-04T17:40:37.15271+01:00"
