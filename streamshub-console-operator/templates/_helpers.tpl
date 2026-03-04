@@ -2,7 +2,7 @@
 Expand the name of the chart.
 */}}
 {{- define "streamshub-console-operator.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- default "console" .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
@@ -13,7 +13,7 @@ Truncated to 63 characters as required by Kubernetes DNS naming rules.
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- $name := default .Chart.Name .Values.nameOverride }}
+{{- $name := default "console" .Values.nameOverride }}
 {{- if contains $name .Release.Name }}
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -57,7 +57,7 @@ ServiceAccount name.
 Console instance hostname.
 Built from fullname + clusterDomain when clusterDomain is set.
 Falls back to consoleInstance.hostname if clusterDomain is not set.
-Example with clusterDomain: streamshub-console-operator.192.168.49.2.nip.io
+Example with clusterDomain: konzole.192.168.49.2.nip.io
 Example with hostname:       console.example.com
 */}}
 {{- define "streamshub-console-operator.consoleHostname" -}}
@@ -86,4 +86,12 @@ Must remain stable across upgrades (never add/remove fields once deployed).
 {{- define "streamshub-console-operator.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "streamshub-console-operator.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{/*
+Kafka cluster name — release name suffixed with -kafka.
+Used in both example-kafka.yaml and console-instance.yaml to ensure they always match.
+*/}}
+{{- define "streamshub-console-operator.kafkaName" -}}
+{{- printf "%s-kafka" .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- end }}

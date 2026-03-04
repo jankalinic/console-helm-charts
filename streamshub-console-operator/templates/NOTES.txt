@@ -12,11 +12,8 @@ Uninstallation
 
     helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }}
 
-  Full clean uninstall (waits for all CRs and pods to be removed):
+  Full clean uninstall you need to set additional value (waits for all CRs and pods to be removed):
 
-    helm upgrade {{ .Release.Name }} -n {{ .Release.Namespace }} \
+    helm upgrade {{ .Release.Name }} {{ .Chart.Name }} -n {{ .Release.Namespace }} \
       --set fullCleanup=true \
       --reuse-values
-
-    helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }} \
-      --set fullCleanup=true

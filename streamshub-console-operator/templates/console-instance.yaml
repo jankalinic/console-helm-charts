@@ -5,7 +5,7 @@
 apiVersion: console.streamshub.github.com/v1alpha1
 kind: Console
 metadata:
-  name: {{ include "streamshub-console-operator.fullname" . }}
+  name: {{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "streamshub-console-operator.labels" . | nindent 4 }}
@@ -15,12 +15,12 @@ spec:
   {{- if or .Values.exampleKafka.enabled .Values.consoleInstance.kafkaClusters }}
   kafkaClusters:
     {{- if .Values.exampleKafka.enabled }}
-    - name: {{ include "streamshub-console-operator.fullname" . }}-kafka
+    - name: {{ include "streamshub-console-operator.kafkaName" . }}
       namespace: {{ .Values.exampleKafka.namespace | default .Release.Namespace }}
       listener: tls
       credentials:
         kafkaUser:
-          name: {{ include "streamshub-console-operator.fullname" . }}-kafka-user
+          name: {{ .Release.Name }}-kafka-user
     {{- end }}
     {{- if .Values.consoleInstance.kafkaClusters }}
     {{- toYaml .Values.consoleInstance.kafkaClusters | nindent 4 }}

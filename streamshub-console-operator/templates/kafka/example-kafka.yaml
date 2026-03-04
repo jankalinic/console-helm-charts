@@ -1,10 +1,9 @@
 {{- if .Values.exampleKafka.enabled }}
 ---
-# Metrics ConfigMap — JMX Prometheus Exporter config for Kafka brokers
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "streamshub-console-operator.fullname" . }}-kafka-metrics
+  name: {{ .Release.Name }}-kafka-metrics
   namespace: {{ .Values.exampleKafka.namespace | default .Release.Namespace }}
   labels:
     {{- include "streamshub-console-operator.labels" . | nindent 4 }}
@@ -32,14 +31,13 @@ data:
       name: kafka_$1_$2_$3_$4
       type: GAUGE
 ---
-# KafkaNodePool — brokers
 apiVersion: kafka.strimzi.io/v1
 kind: KafkaNodePool
 metadata:
   name: broker
   namespace: {{ .Values.exampleKafka.namespace | default .Release.Namespace }}
   labels:
-    strimzi.io/cluster: {{ include "streamshub-console-operator.fullname" . }}-kafka
+    strimzi.io/cluster: {{ include "streamshub-console-operator.kafkaName" . }}
     {{- include "streamshub-console-operator.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.exampleKafka.brokerReplicas }}
@@ -48,14 +46,13 @@ spec:
   storage:
     type: ephemeral
 ---
-# KafkaNodePool — controllers
 apiVersion: kafka.strimzi.io/v1
 kind: KafkaNodePool
 metadata:
   name: controller
   namespace: {{ .Values.exampleKafka.namespace | default .Release.Namespace }}
   labels:
-    strimzi.io/cluster: {{ include "streamshub-console-operator.fullname" . }}-kafka
+    strimzi.io/cluster: {{ include "streamshub-console-operator.kafkaName" . }}
     {{- include "streamshub-console-operator.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.exampleKafka.controllerReplicas }}
@@ -64,11 +61,10 @@ spec:
   storage:
     type: ephemeral
 ---
-# Kafka cluster — KRaft mode, SCRAM-SHA-512 auth, TLS listener
 apiVersion: kafka.strimzi.io/v1
 kind: Kafka
 metadata:
-  name: {{ include "streamshub-console-operator.fullname" . }}-kafka
+  name: {{ include "streamshub-console-operator.kafkaName" . }}
   namespace: {{ .Values.exampleKafka.namespace | default .Release.Namespace }}
   labels:
     {{- include "streamshub-console-operator.labels" . | nindent 4 }}
@@ -101,20 +97,19 @@ spec:
       type: jmxPrometheusExporter
       valueFrom:
         configMapKeyRef:
-          name: {{ include "streamshub-console-operator.fullname" . }}-kafka-metrics
+          name: {{ .Release.Name }}-kafka-metrics
           key: kafka-metrics-config.yml
   entityOperator:
     topicOperator: {}
     userOperator: {}
 ---
-# KafkaUser — SCRAM-SHA-512 credentials for the console
 apiVersion: kafka.strimzi.io/v1
 kind: KafkaUser
 metadata:
-  name: {{ include "streamshub-console-operator.fullname" . }}-kafka-user
+  name: {{ .Release.Name }}-kafka-user
   namespace: {{ .Values.exampleKafka.namespace | default .Release.Namespace }}
   labels:
-    strimzi.io/cluster: {{ include "streamshub-console-operator.fullname" . }}-kafka
+    strimzi.io/cluster: {{ include "streamshub-console-operator.kafkaName" . }}
     {{- include "streamshub-console-operator.labels" . | nindent 4 }}
 spec:
   authentication:
@@ -144,14 +139,13 @@ spec:
           - Describe
           - DescribeConfigs
 ---
-# KafkaTopic — example topic
 apiVersion: kafka.strimzi.io/v1
 kind: KafkaTopic
 metadata:
-  name: {{ include "streamshub-console-operator.fullname" . }}-topic
+  name: {{ .Release.Name }}-topic
   namespace: {{ .Values.exampleKafka.namespace | default .Release.Namespace }}
   labels:
-    strimzi.io/cluster: {{ include "streamshub-console-operator.fullname" . }}-kafka
+    strimzi.io/cluster: {{ include "streamshub-console-operator.kafkaName" . }}
     {{- include "streamshub-console-operator.labels" . | nindent 4 }}
 spec:
   partitions: 3
