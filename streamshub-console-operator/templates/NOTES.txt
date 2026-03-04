@@ -1,19 +1,79 @@
+helm install konzole oci://... \
+  --set strimzi-kafka-operator.watchNamespaces="{co-namespace,kafka-namespace}" \
+  --set strimzi-kafka-operator.watchAnyNamespace=false
+```
+
+And here's the updated `NOTES.txt`:
+```
+{{- if .Release.IsInstall }}
 StreamsHub Console Operator has been deployed!
 
 Operator namespace : {{ .Release.Namespace }}
 Watch scope        : cluster-wide (all namespaces)
 Image              : {{ include "streamshub-console-operator.image" . }}
+Full cleanup       : {{ .Values.fullCleanup }}
+
+{{- if .Values.strimzi.enabled }}
+------------------------------------------------------------
+Strimzi Kafka Operator
+------------------------------------------------------------
+Version            : {{ .Values.strimzi.version }}
+{{- if .Values.strimzi.strimziKafkaOperator.watchAnyNamespace }}
+Watch namespace    : all namespaces
+{{- else if .Values.strimzi.strimziKafkaOperator.watchNamespaces }}
+Watch namespaces   : {{ join ", " .Values.strimzi.strimziKafkaOperator.watchNamespaces }}
+{{- else }}
+Watch namespaces   : {{ .Release.Namespace }} (default)
+{{- end }}
+{{- end }}
+
+{{- if .Values.exampleKafka.enabled }}
+------------------------------------------------------------
+Example Kafka Cluster
+------------------------------------------------------------
+Kafka cluster      : {{ include "streamshub-console-operator.kafkaName" . }}
+Namespace          : {{ .Values.exampleKafka.namespace | default .Release.Namespace }}
+Version            : {{ .Values.exampleKafka.kafkaVersion }}
+Brokers            : {{ .Values.exampleKafka.brokerReplicas }}
+Controllers        : {{ .Values.exampleKafka.controllerReplicas }}
+{{- end }}
+
+{{- if .Values.deployConsoleInstance }}
+------------------------------------------------------------
+Console Instance
+------------------------------------------------------------
+Name               : {{ .Release.Name }}
+Hostname           : {{ include "streamshub-console-operator.consoleHostname" . }}
+{{- if .Values.exampleKafka.enabled }}
+Connected to       : {{ include "streamshub-console-operator.kafkaName" . }}
+{{- end }}
+{{- end }}
 
 ------------------------------------------------------------
 Uninstallation
 ------------------------------------------------------------
+{{- if .Values.fullCleanup }}
+Full cleanup is enabled. To uninstall and remove all CRs:
 
-  Fast uninstall (leaves CR cleanup to you):
+  helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }}
 
-    helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }}
+{{- else }}
+Full cleanup is disabled. To uninstall:
 
-  Full clean uninstall you need to set additional value (waits for all CRs and pods to be removed):
+  helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }}
 
-    helm upgrade {{ .Release.Name }} {{ .Chart.Name }} -n {{ .Release.Namespace }} \
-      --set fullCleanup=true \
-      --reuse-values
+Note: Console and Kafka CRs will NOT be automatically removed.
+To enable full cleanup on uninstall, upgrade first with:
+
+  helm upgrade {{ .Release.Name }} ... --reuse-values --set fullCleanup=true
+{{- end }}
+{{- end }}
+
+{{- if and .Release.IsUpgrade .Values.fullCleanup }}
+⚠ Full cleanup is now enabled for {{ .Release.Name }}.
+When you are ready to uninstall, run:
+
+  helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }}
+
+This will remove all CRs before uninstalling the operator.
+{{- end }}

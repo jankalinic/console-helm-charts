@@ -7,7 +7,7 @@ fullCleanup: false
 
 # -- Image used by the pre-delete hook Job to clean up the Console CR.
 # Change this if you are in an air-gapped environment.
-hookImage: bitnami/kubectl:latest
+hookImage: mirror.gcr.io/bitnami/kubectl:latest
 
 # -- Optionally deploy Strimzi Kafka Operator as a subchart.
 # Useful for getting a full stack running in one command.
@@ -17,7 +17,9 @@ strimzi:
   version: "0.50.1"
   # -- All Strimzi chart values can be overridden here.
   # See https://github.com/strimzi/strimzi-kafka-operator/blob/main/helm-charts/helm3/strimzi-kafka-operator/values.yaml
-  strimzi-kafka-operator: {}
+  strimzi-kafka-operator:
+    watchNamespaces: [ ]
+    watchAnyNamespace: true
 
 # -- Deploy an example Kafka cluster for testing.
 # Requires Strimzi to be installed (either via strimzi.enabled or pre-existing).

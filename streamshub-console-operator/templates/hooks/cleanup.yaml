@@ -45,6 +45,69 @@ subjects:
     name: {{ .Release.Name }}-cleanup
     namespace: {{ .Release.Namespace }}
 ---
+# Step 1 — Strip all finalizers first so deletes are not blocked
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-remove-finalizers
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook: pre-delete
+    helm.sh/hook-weight: "-1"
+    helm.sh/hook-delete-policy: hook-succeeded,hook-failed
+spec:
+  template:
+    spec:
+      serviceAccountName: {{ .Release.Name }}-cleanup
+      restartPolicy: Never
+      containers:
+        - name: remove-finalizers
+          image: {{ .Values.hookImage }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              {{- if .Values.deployConsoleInstance }}
+              echo "Removing Console CR finalizers..."
+              kubectl patch console {{ .Release.Name }} \
+                -n {{ .Release.Namespace }} \
+                -p '{"metadata":{"finalizers":[]}}' \
+                --type=merge --ignore-not-found
+              {{- end }}
+
+              {{- if .Values.exampleKafka.enabled }}
+              NS={{ .Values.exampleKafka.namespace | default .Release.Namespace }}
+
+              echo "Removing Kafka CR finalizers..."
+              kubectl patch kafka {{ include "streamshub-console-operator.kafkaName" . }} \
+                -n ${NS} \
+                -p '{"metadata":{"finalizers":[]}}' \
+                --type=merge --ignore-not-found
+
+              echo "Removing KafkaTopic finalizers..."
+              kubectl patch kafkatopic {{ .Release.Name }}-topic \
+                -n ${NS} \
+                -p '{"metadata":{"finalizers":[]}}' \
+                --type=merge --ignore-not-found
+
+              echo "Removing KafkaUser finalizers..."
+              kubectl patch kafkauser {{ .Release.Name }}-kafka-user \
+                -n ${NS} \
+                -p '{"metadata":{"finalizers":[]}}' \
+                --type=merge --ignore-not-found
+
+              echo "Removing KafkaNodePool finalizers..."
+              for np in $(kubectl get kafkanodepool \
+                -l strimzi.io/cluster={{ include "streamshub-console-operator.kafkaName" . }} \
+                -n ${NS} -o name 2>/dev/null); do
+                kubectl patch ${np} -n ${NS} \
+                  -p '{"metadata":{"finalizers":[]}}' --type=merge
+              done
+              {{- end }}
+
+              echo "Finalizers removed."
+---
+# Step 2 — Delete CRs and wait for full removal
 apiVersion: batch/v1
 kind: Job
 metadata:
