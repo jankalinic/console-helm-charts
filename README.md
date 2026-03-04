@@ -9,7 +9,7 @@ Community-maintained Helm charts for [StreamsHub](https://github.com/streamshub)
 
 | Chart                                                               | Description | Version |
 |---------------------------------------------------------------------|---|---|
-| [streamshub-console-operator](streamshub-console-operator) | Deploys the StreamsHub Console Operator for monitoring Apache Kafka® clusters | 0.11.0 |
+| [streamshub-console-operator](streamshub-console-operator-community) | Deploys the StreamsHub Console Operator for monitoring Apache Kafka® clusters | 0.11.0 |
 
 ## Usage
 
