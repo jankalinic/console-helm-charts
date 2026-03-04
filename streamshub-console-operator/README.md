@@ -7,7 +7,6 @@
 A Helm chart for the [StreamsHub Console Operator](https://github.com/streamshub/console), which deploys and manages the StreamsHub Console — a web-based UI for monitoring Apache Kafka® clusters running on Kubernetes.
 
 > **Note:** This chart is a community-maintained Helm packaging of the StreamsHub Console Operator.
-> A proposal to include it in the upstream project is in progress.
 > The canonical installation method remains the [OLM-based operator bundle](https://github.com/streamshub/console).
 
 ---
