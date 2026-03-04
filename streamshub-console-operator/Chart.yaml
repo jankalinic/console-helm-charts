@@ -1,5 +1,5 @@
 apiVersion: v2
-name: streamshub-console-operator-community-jkalinic
+name: streamshub-console-operator
 description: User interface to monitor Apache Kafka® clusters managed by Strimzi
 type: application
 
