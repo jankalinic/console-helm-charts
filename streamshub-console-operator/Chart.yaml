@@ -3,12 +3,19 @@ name: streamshub-console-operator
 description: User interface to monitor Apache Kafka® clusters managed by Strimzi
 type: application
 
-# Chart version — follows its own semver lifecycle, independent of appVersion.
-# Bump this on every chart change.
+# Chart version — kept in sync with appVersion so that --version 0.11.0
+# always means operator 0.11.0. Patch bumps (e.g. 0.11.1) are used for
+# chart-only fixes that don't change the operator version.
 version: 0.11.0
 
 # appVersion — the operator image tag deployed by this chart version.
 appVersion: "0.11.0"
+
+dependencies:
+  - name: strimzi-kafka-operator
+    version: ">=0.50.0"
+    repository: "https://strimzi.io/charts/"
+    condition: strimzi.enabled
 
 keywords:
   - kafka

@@ -1,0 +1,109 @@
+{{- if and (or .Values.deployConsoleInstance .Values.exampleKafka.enabled) .Values.fullCleanup }}
+---
+# Pre-delete hook — deletes the Console CR and waits for the operator to
+# finish cleaning up before Helm removes the operator itself.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "streamshub-console-operator.fullname" . }}-cleanup
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook: pre-delete
+    helm.sh/hook-weight: "-5"
+    helm.sh/hook-delete-policy: hook-succeeded,hook-failed
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "streamshub-console-operator.clusterResourceName" . }}-cleanup
+  annotations:
+    helm.sh/hook: pre-delete
+    helm.sh/hook-weight: "-5"
+    helm.sh/hook-delete-policy: hook-succeeded,hook-failed
+rules:
+  - apiGroups: ["console.streamshub.github.com"]
+    resources: ["consoles"]
+    verbs: ["get", "delete", "list", "watch"]
+  - apiGroups: ["kafka.strimzi.io"]
+    resources: ["kafkas", "kafkatopics", "kafkausers", "kafkanodepools"]
+    verbs: ["get", "delete", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "streamshub-console-operator.clusterResourceName" . }}-cleanup
+  annotations:
+    helm.sh/hook: pre-delete
+    helm.sh/hook-weight: "-5"
+    helm.sh/hook-delete-policy: hook-succeeded,hook-failed
+roleRef:
+  kind: ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+  name: {{ include "streamshub-console-operator.clusterResourceName" . }}-cleanup
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "streamshub-console-operator.fullname" . }}-cleanup
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "streamshub-console-operator.fullname" . }}-cleanup
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook: pre-delete
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: hook-succeeded,hook-failed
+spec:
+  template:
+    spec:
+      serviceAccountName: {{ include "streamshub-console-operator.fullname" . }}-cleanup
+      restartPolicy: Never
+      containers:
+        - name: cleanup
+          image: {{ .Values.hookImage }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              {{- if .Values.deployConsoleInstance }}
+              echo "Deleting Console CR..."
+              kubectl delete console {{ include "streamshub-console-operator.fullname" . }} \
+                -n {{ .Release.Namespace }} --ignore-not-found
+
+              echo "Waiting for Console CR to be fully removed..."
+              kubectl wait console {{ include "streamshub-console-operator.fullname" . }} \
+                -n {{ .Release.Namespace }} \
+                --for=delete \
+                --timeout=120s || true
+              {{- end }}
+
+              {{- if .Values.exampleKafka.enabled }}
+              NS={{ .Values.exampleKafka.namespace | default .Release.Namespace }}
+
+              echo "Deleting KafkaTopic..."
+              kubectl delete kafkatopic {{ include "streamshub-console-operator.fullname" . }}-topic \
+                -n ${NS} --ignore-not-found
+
+              echo "Deleting KafkaUser..."
+              kubectl delete kafkauser {{ include "streamshub-console-operator.fullname" . }}-kafka-user \
+                -n ${NS} --ignore-not-found
+
+              echo "Deleting Kafka CR..."
+              kubectl delete kafka {{ include "streamshub-console-operator.fullname" . }}-kafka \
+                -n ${NS} --ignore-not-found
+
+              echo "Waiting for Kafka CR to be fully removed..."
+              kubectl wait kafka {{ include "streamshub-console-operator.fullname" . }}-kafka \
+                -n ${NS} \
+                --for=delete \
+                --timeout=180s || true
+
+              echo "Deleting KafkaNodePools..."
+              kubectl delete kafkanodepool \
+                -l strimzi.io/cluster={{ include "streamshub-console-operator.fullname" . }}-kafka \
+                -n ${NS} --ignore-not-found
+              {{- end }}
+
+              echo "Cleanup complete."
+{{- end }}

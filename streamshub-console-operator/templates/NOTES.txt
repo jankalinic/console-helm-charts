@@ -5,72 +5,18 @@ Watch scope        : cluster-wide (all namespaces)
 Image              : {{ include "streamshub-console-operator.image" . }}
 
 ------------------------------------------------------------
-Next steps
+Uninstallation
 ------------------------------------------------------------
 
-1. Verify the operator pod is running:
+  Fast uninstall (leaves CR cleanup to you):
 
-     kubectl get pods -n {{ .Release.Namespace }} \
-       -l app.kubernetes.io/name={{ include "streamshub-console-operator.name" . }}
+    helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }}
 
-2. Deploy a Console instance.
-{{- if .Values.deployConsoleInstance }}
+  Full clean uninstall (waits for all CRs and pods to be removed):
 
-   A Console instance was deployed alongside the operator.
-   Check its status with:
+    helm upgrade {{ .Release.Name }} -n {{ .Release.Namespace }} \
+      --set fullCleanup=true \
+      --reuse-values
 
-     kubectl get console -n {{ .Release.Namespace }}
-     kubectl describe console -n {{ .Release.Namespace }}
-
-{{- else }}
-
-   No Console instance was deployed. To deploy one together
-   with the operator, upgrade with:
-
-     helm upgrade {{ .Release.Name }} \
-       --reuse-values \
-       --set deployConsoleInstance=true \
-       --set consoleInstance.hostname=<your-hostname> \
-       -n {{ .Release.Namespace }}
-
-   Or apply a Console CR manually:
-
-     apiVersion: console.streamshub.github.com/v1alpha1
-     kind: Console
-     metadata:
-       name: my-console
-       namespace: {{ .Release.Namespace }}
-     spec:
-       hostname: console.example.com
-
-{{- end }}
-
-3. Check the operator logs if something looks off:
-
-     kubectl logs -n {{ .Release.Namespace }} \
-       deployment/{{ include "streamshub-console-operator.fullname" . }}
-
-------------------------------------------------------------
-Notes
-------------------------------------------------------------
-{{- if .Values.openshift.enabled }}
-  OpenShift mode is enabled. The cluster-monitoring-view
-  ClusterRoleBinding has been created.
-{{- else }}
-  OpenShift mode is disabled. If running on OpenShift and you
-  want Prometheus metrics integration, upgrade with:
-
-    helm upgrade {{ .Release.Name }} --reuse-values \
-      --set openshift.enabled=true -n {{ .Release.Namespace }}
-{{- end }}
-
-{{- if .Values.serviceMonitor.enabled }}
-  A ServiceMonitor has been created. Ensure prometheus-operator
-  is installed in your cluster.
-{{- else }}
-  ServiceMonitor is disabled. To enable Prometheus scraping
-  (requires prometheus-operator), upgrade with:
-
-    helm upgrade {{ .Release.Name }} --reuse-values \
-      --set serviceMonitor.enabled=true -n {{ .Release.Namespace }}
-{{- end }}
+    helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }} \
+      --set fullCleanup=true

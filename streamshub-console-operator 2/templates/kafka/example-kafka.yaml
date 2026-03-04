@@ -1,0 +1,162 @@
+{{- if .Values.exampleKafka.enabled }}
+---
+# Metrics ConfigMap — JMX Prometheus Exporter config for Kafka brokers
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "streamshub-console-operator.fullname" . }}-kafka-metrics
+  namespace: {{ .Values.exampleKafka.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "streamshub-console-operator.labels" . | nindent 4 }}
+data:
+  kafka-metrics-config.yml: |
+    lowercaseOutputName: true
+    rules:
+    - pattern: kafka.server<type=(.+), name=(.+), clientId=(.+), topic=(.+), partition=(.*)><>Value
+      name: kafka_server_$1_$2
+      type: GAUGE
+      labels:
+        clientId: "$3"
+        topic: "$4"
+        partition: "$5"
+    - pattern: kafka.server<type=(.+), name=(.+), clientId=(.+), brokerHost=(.+), brokerPort=(.+)><>Value
+      name: kafka_server_$1_$2
+      type: GAUGE
+      labels:
+        clientId: "$3"
+        broker: "$4:$5"
+    - pattern: kafka.server<type=(.+), name=(.+)><>(\w+)
+      name: kafka_server_$1_$2_$3
+      type: GAUGE
+    - pattern: kafka.(\w+)<type=(.+), name=(.+)><>(\w+)
+      name: kafka_$1_$2_$3_$4
+      type: GAUGE
+---
+# KafkaNodePool — brokers
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: broker
+  namespace: {{ .Values.exampleKafka.namespace | default .Release.Namespace }}
+  labels:
+    strimzi.io/cluster: {{ include "streamshub-console-operator.fullname" . }}-kafka
+    {{- include "streamshub-console-operator.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.exampleKafka.brokerReplicas }}
+  roles:
+    - broker
+  storage:
+    type: ephemeral
+---
+# KafkaNodePool — controllers
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: controller
+  namespace: {{ .Values.exampleKafka.namespace | default .Release.Namespace }}
+  labels:
+    strimzi.io/cluster: {{ include "streamshub-console-operator.fullname" . }}-kafka
+    {{- include "streamshub-console-operator.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.exampleKafka.controllerReplicas }}
+  roles:
+    - controller
+  storage:
+    type: ephemeral
+---
+# Kafka cluster — KRaft mode, SCRAM-SHA-512 auth, TLS listener
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: {{ include "streamshub-console-operator.fullname" . }}-kafka
+  namespace: {{ .Values.exampleKafka.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "streamshub-console-operator.labels" . | nindent 4 }}
+  annotations:
+    strimzi.io/node-pools: enabled
+    strimzi.io/kraft: enabled
+spec:
+  kafka:
+    version: {{ .Values.exampleKafka.kafkaVersion | quote }}
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+        authentication:
+          type: scram-sha-512
+    authorization:
+      type: simple
+    config:
+      offsets.topic.replication.factor: 1
+      transaction.state.log.replication.factor: 1
+      transaction.state.log.min.isr: 1
+      default.replication.factor: 1
+      min.insync.replicas: 1
+    metricsConfig:
+      type: jmxPrometheusExporter
+      valueFrom:
+        configMapKeyRef:
+          name: {{ include "streamshub-console-operator.fullname" . }}-kafka-metrics
+          key: kafka-metrics-config.yml
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+---
+# KafkaUser — SCRAM-SHA-512 credentials for the console
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: {{ include "streamshub-console-operator.fullname" . }}-kafka-user
+  namespace: {{ .Values.exampleKafka.namespace | default .Release.Namespace }}
+  labels:
+    strimzi.io/cluster: {{ include "streamshub-console-operator.fullname" . }}-kafka
+    {{- include "streamshub-console-operator.labels" . | nindent 4 }}
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: "*"
+          patternType: literal
+        operations:
+          - Read
+          - Write
+          - Describe
+          - Create
+      - resource:
+          type: group
+          name: "*"
+          patternType: literal
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: cluster
+        operations:
+          - Describe
+          - DescribeConfigs
+---
+# KafkaTopic — example topic
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: {{ include "streamshub-console-operator.fullname" . }}-topic
+  namespace: {{ .Values.exampleKafka.namespace | default .Release.Namespace }}
+  labels:
+    strimzi.io/cluster: {{ include "streamshub-console-operator.fullname" . }}-kafka
+    {{- include "streamshub-console-operator.labels" . | nindent 4 }}
+spec:
+  partitions: 3
+  replicas: 1
+  config:
+    retention.ms: 7200000
+    segment.bytes: 1073741824
+{{- end }}

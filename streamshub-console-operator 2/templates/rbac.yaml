@@ -1,0 +1,84 @@
+{{- if .Values.rbac.create }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "streamshub-console-operator.clusterResourceName" . }}-reconciler
+  labels:
+    {{- include "streamshub-console-operator.labels" . | nindent 4 }}
+roleRef:
+  kind: ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+  name: {{ include "streamshub-console-operator.clusterResourceName" . }}-reconciler
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "streamshub-console-operator.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "streamshub-console-operator.clusterResourceName" . }}-crd-validating
+  labels:
+    {{- include "streamshub-console-operator.labels" . | nindent 4 }}
+roleRef:
+  kind: ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+  name: {{ include "streamshub-console-operator.clusterResourceName" . }}-crd-validating
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "streamshub-console-operator.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "streamshub-console-operator.clusterResourceName" . }}-additional
+  labels:
+    {{- include "streamshub-console-operator.labels" . | nindent 4 }}
+roleRef:
+  kind: ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+  name: {{ include "streamshub-console-operator.clusterResourceName" . }}-additional
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "streamshub-console-operator.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+---
+# Grants read access to the operator's own namespace resources
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "streamshub-console-operator.fullname" . }}-view
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "streamshub-console-operator.labels" . | nindent 4 }}
+roleRef:
+  kind: ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+  name: view
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "streamshub-console-operator.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+---
+# OpenShift only: binds the pre-existing cluster-monitoring-view ClusterRole
+# which is required for Prometheus/Thanos metrics integration on OpenShift.
+# This ClusterRole does not exist on vanilla Kubernetes.
+{{- if .Values.openshift.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "streamshub-console-operator.clusterResourceName" . }}-cluster-monitoring-view
+  labels:
+    {{- include "streamshub-console-operator.labels" . | nindent 4 }}
+roleRef:
+  kind: ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+  name: cluster-monitoring-view
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "streamshub-console-operator.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}
+{{- end }}

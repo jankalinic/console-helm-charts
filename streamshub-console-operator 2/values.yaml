@@ -1,14 +1,3 @@
-
-# -- When true, the pre-delete hook will cleanly remove all CRs (Console,
-# Kafka, KafkaUser, KafkaTopic) and wait for operators to finish cleanup
-# before uninstalling. Set to false for a fast uninstall that leaves
-# CR cleanup to the user.
-fullCleanup: false
-
-# -- Image used by the pre-delete hook Job to clean up the Console CR.
-# Change this if you are in an air-gapped environment.
-hookImage: bitnami/kubectl:latest
-
 # -- Optionally deploy Strimzi Kafka Operator as a subchart.
 # Useful for getting a full stack running in one command.
 # Disable if you already have Strimzi installed in your cluster.
