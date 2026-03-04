@@ -1,10 +1,3 @@
-helm install konzole oci://... \
-  --set strimzi-kafka-operator.watchNamespaces="{co-namespace,kafka-namespace}" \
-  --set strimzi-kafka-operator.watchAnyNamespace=false
-```
-
-And here's the updated `NOTES.txt`:
-```
 {{- if .Release.IsInstall }}
 StreamsHub Console Operator has been deployed!
 

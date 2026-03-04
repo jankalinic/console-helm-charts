@@ -4,6 +4,7 @@
 # before uninstalling. Set to false for a fast uninstall that leaves
 # CR cleanup to the user.
 fullCleanup: false
+deleteCRDs: false
 
 # -- Image used by the pre-delete hook Job to clean up the Console CR.
 # Change this if you are in an air-gapped environment.

@@ -1,4 +1,4 @@
-{{- if and (or .Values.deployConsoleInstance .Values.exampleKafka.enabled) .Values.fullCleanup }}
+{{- if .Values.fullCleanup }}
 ---
 # Pre-delete hook — deletes the Console CR and waits for the operator to
 # finish cleaning up before Helm removes the operator itself.
@@ -27,6 +27,9 @@ rules:
   - apiGroups: ["kafka.strimzi.io"]
     resources: ["kafkas", "kafkatopics", "kafkausers", "kafkanodepools"]
     verbs: ["get", "delete", "list", "watch", "patch", "update"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "delete", "list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -69,39 +72,47 @@ spec:
             - |
               {{- if .Values.deployConsoleInstance }}
               echo "Removing Console CR finalizers..."
-              kubectl patch console {{ .Release.Name }} \
+              kubectl get console.console.streamshub.github.com {{ .Release.Name }} \
+                -n {{ .Release.Namespace }} > /dev/null 2>&1 && \
+              kubectl patch console.console.streamshub.github.com {{ .Release.Name }} \
                 -n {{ .Release.Namespace }} \
                 -p '{"metadata":{"finalizers":[]}}' \
-                --type=merge --ignore-not-found
+                --type=merge || true
               {{- end }}
 
               {{- if .Values.exampleKafka.enabled }}
               NS={{ .Values.exampleKafka.namespace | default .Release.Namespace }}
 
               echo "Removing Kafka CR finalizers..."
+              kubectl get kafka {{ include "streamshub-console-operator.kafkaName" . }} \
+                -n ${NS} > /dev/null 2>&1 && \
               kubectl patch kafka {{ include "streamshub-console-operator.kafkaName" . }} \
                 -n ${NS} \
                 -p '{"metadata":{"finalizers":[]}}' \
-                --type=merge --ignore-not-found
+                --type=merge || true
 
               echo "Removing KafkaTopic finalizers..."
+              kubectl get kafkatopic {{ .Release.Name }}-topic \
+                -n ${NS} > /dev/null 2>&1 && \
               kubectl patch kafkatopic {{ .Release.Name }}-topic \
                 -n ${NS} \
                 -p '{"metadata":{"finalizers":[]}}' \
-                --type=merge --ignore-not-found
+                --type=merge || true
 
               echo "Removing KafkaUser finalizers..."
+              kubectl get kafkauser {{ .Release.Name }}-kafka-user \
+                -n ${NS} > /dev/null 2>&1 && \
               kubectl patch kafkauser {{ .Release.Name }}-kafka-user \
                 -n ${NS} \
                 -p '{"metadata":{"finalizers":[]}}' \
-                --type=merge --ignore-not-found
+                --type=merge || true
 
               echo "Removing KafkaNodePool finalizers..."
               for np in $(kubectl get kafkanodepool \
                 -l strimzi.io/cluster={{ include "streamshub-console-operator.kafkaName" . }} \
                 -n ${NS} -o name 2>/dev/null); do
                 kubectl patch ${np} -n ${NS} \
-                  -p '{"metadata":{"finalizers":[]}}' --type=merge
+                  -p '{"metadata":{"finalizers":[]}}' --type=merge || true
               done
               {{- end }}
 
@@ -131,17 +142,19 @@ spec:
             - |
               {{- if .Values.deployConsoleInstance }}
               echo "Removing Console CR finalizers..."
-              kubectl patch console {{ .Release.Name }} \
+              kubectl get console.console.streamshub.github.com {{ .Release.Name }} \
+                -n {{ .Release.Namespace }} > /dev/null 2>&1 && \
+              kubectl patch console.console.streamshub.github.com {{ .Release.Name }} \
                 -n {{ .Release.Namespace }} \
                 -p '{"metadata":{"finalizers":[]}}' \
-                --type=merge --ignore-not-found
+                --type=merge || true
 
               echo "Deleting Console CR..."
-              kubectl delete console {{ .Release.Name }} \
+              kubectl delete console.console.streamshub.github.com {{ .Release.Name }} \
                 -n {{ .Release.Namespace }} --ignore-not-found
 
               echo "Waiting for Console CR to be fully removed..."
-              kubectl wait console {{ .Release.Name }} \
+              kubectl wait console.console.streamshub.github.com {{ .Release.Name }} \
                 -n {{ .Release.Namespace }} \
                 --for=delete \
                 --timeout=120s || true
@@ -151,30 +164,36 @@ spec:
               NS={{ .Values.exampleKafka.namespace | default .Release.Namespace }}
 
               echo "Removing KafkaTopic finalizers..."
+              kubectl get kafkatopic {{ .Release.Name }}-topic \
+                -n ${NS} > /dev/null 2>&1 && \
               kubectl patch kafkatopic {{ .Release.Name }}-topic \
                 -n ${NS} \
                 -p '{"metadata":{"finalizers":[]}}' \
-                --type=merge --ignore-not-found
+                --type=merge || true
 
               echo "Deleting KafkaTopic..."
               kubectl delete kafkatopic {{ .Release.Name }}-topic \
                 -n ${NS} --ignore-not-found
 
               echo "Removing KafkaUser finalizers..."
+              kubectl get kafkauser {{ .Release.Name }}-kafka-user \
+                -n ${NS} > /dev/null 2>&1 && \
               kubectl patch kafkauser {{ .Release.Name }}-kafka-user \
                 -n ${NS} \
                 -p '{"metadata":{"finalizers":[]}}' \
-                --type=merge --ignore-not-found
+                --type=merge || true
 
               echo "Deleting KafkaUser..."
               kubectl delete kafkauser {{ .Release.Name }}-kafka-user \
                 -n ${NS} --ignore-not-found
 
               echo "Removing Kafka CR finalizers..."
+              kubectl get kafka {{ include "streamshub-console-operator.kafkaName" . }} \
+                -n ${NS} > /dev/null 2>&1 && \
               kubectl patch kafka {{ include "streamshub-console-operator.kafkaName" . }} \
                 -n ${NS} \
                 -p '{"metadata":{"finalizers":[]}}' \
-                --type=merge --ignore-not-found
+                --type=merge || true
 
               echo "Deleting Kafka CR..."
               kubectl delete kafka {{ include "streamshub-console-operator.kafkaName" . }} \
@@ -191,7 +210,7 @@ spec:
                 -l strimzi.io/cluster={{ include "streamshub-console-operator.kafkaName" . }} \
                 -n ${NS} -o name 2>/dev/null); do
                 kubectl patch ${np} -n ${NS} \
-                  -p '{"metadata":{"finalizers":[]}}' --type=merge
+                  -p '{"metadata":{"finalizers":[]}}' --type=merge || true
               done
 
               echo "Deleting KafkaNodePools..."
@@ -201,4 +220,27 @@ spec:
               {{- end }}
 
               echo "Cleanup complete."
+              {{- if .Values.deleteCRDs }}
+                echo "Deleting Console CRD..."
+                kubectl get crd consoles.console.streamshub.github.com > /dev/null 2>&1 && \
+                kubectl delete crd consoles.console.streamshub.github.com || true
+
+                {{- if .Values.strimzi.enabled }}
+                echo "Deleting Strimzi CRDs..."
+                for crd in \
+                  kafkas.kafka.strimzi.io \
+                  kafkanodepools.kafka.strimzi.io \
+                  kafkatopics.kafka.strimzi.io \
+                  kafkausers.kafka.strimzi.io \
+                  kafkaconnects.kafka.strimzi.io \
+                  kafkamirrormaker2s.kafka.strimzi.io \
+                  kafkarebalances.kafka.strimzi.io \
+                  kafkabridges.kafka.strimzi.io \
+                  kafkaconnectors.kafka.strimzi.io \
+                  kafkamirrormakers.kafka.strimzi.io; do
+                  kubectl get crd ${crd} > /dev/null 2>&1 && \
+                  kubectl delete crd ${crd} || true
+                done
+                {{- end }}
+              {{- end }}
 {{- end }}
